@@ -139,7 +139,7 @@ function! cg#chat(msg, is_code) abort
   endif
 
   let l:cmd = s:get_chat_cmd(g:cg_api_key, a:msg, a:is_code)
-  call s:send_chat_query(l:cmd, a:msg, -1)
+  call s:send_chat_query(l:cmd, a:msg, a:is_code, -1)
 endfunction
 
 function! s:get_chat_cmd(api_key, msg, is_code) abort
@@ -173,32 +173,32 @@ function! s:get_chat_cmd(api_key, msg, is_code) abort
   return join(l:cmd, ' ')
 endfunction
 
-function! s:send_chat_query(cmd, msg, buf_nr) abort
+function! s:send_chat_query(cmd, msg, is_code, buf_nr) abort
   echo 'CGC querying for response...'
   if has('job')
-    let Callback = function('s:chat_job_callback', [a:msg, a:buf_nr])
+    let Callback = function('s:chat_job_callback', [a:msg, a:is_code, a:buf_nr])
     call job_start(a:cmd, {'close_cb': Callback})
   elseif has('nvim')
-    let Callback = function('s:chat_job_callback_nvim', [a:msg, a:buf_nr])
+    let Callback = function('s:chat_job_callback_nvim', [a:msg, a:is_code, a:buf_nr])
     call jobstart(a:cmd, {'on_stdout': Callback, 'stdout_buffered': 1})
   else
     call s:warn('CS.vim require job feature.')
   endif
 endfunction
 
-function! s:chat_job_callback(msg, buf_nr, channel) abort
+function! s:chat_job_callback(msg, is_code, buf_nr, channel) abort
   let l:response = []
   while ch_status(a:channel, {'part': 'out'}) == 'buffered'
     let l:response += [ch_read(a:channel)]
   endwhile
-  call s:process_chat_response(l:response, a:msg, a:buf_nr)
+  call s:process_chat_response(l:response, a:msg, a:is_code, a:buf_nr)
 endfunction
 
-function! s:chat_job_callback_nvim(msg, buf_nr, id, data, event) abort
-  call s:process_chat_response(a:data, a:msg, a:buf_nr)
+function! s:chat_job_callback_nvim(msg, is_code, buf_nr, id, data, event) abort
+  call s:process_chat_response(a:data, a:msg, a:is_code, a:buf_nr)
 endfunction
 
-function! s:process_chat_response(response, msg, buf_nr) abort
+function! s:process_chat_response(response, msg, is_code, buf_nr) abort
   let l:response = join(a:response, '')
   let l:response = trim(l:response)
   if empty(l:response)
@@ -224,7 +224,7 @@ function! s:process_chat_response(response, msg, buf_nr) abort
   let l:cur_winid = win_getid()
 
   call s:goto_buf(a:buf_nr)
-  silent execute 'file' fnameescape('CGC '. bufnr())
+  silent execute 'file' fnameescape((a:is_code ? 'CGCode ' : 'CGC '). bufnr())
   silent execute 'setfiletype' 'markdown'
   call s:fill(l:response)
 
