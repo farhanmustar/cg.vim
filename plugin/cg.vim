@@ -1,1 +1,1 @@
-command! -nargs=+ CG call cg#query(<q-args>)
+command! -nargs=+ CG call cg#comp(<q-args>)
