@@ -23,6 +23,7 @@ let g:cg_comp_temperature = get(g:, 'cg_comp_temperature', 0)  " 0 - 2 -> higer 
 let g:cg_chat_model = get(g:, 'cg_chat_model', 'gpt-3.5-turbo')
 let g:cg_chat_max_token = get(g:, 'cg_chat_max_token', 2000)  " limit cost for request and reply.
 let g:cg_chat_temperature = get(g:, 'cg_chat_temperature', 1)  " 0 - 2 -> higer value less predictable
+let g:cg_chat_history_count = get(g:, 'cg_chat_history_count', 3)  " limit prev history count to send
 let g:cg_chat_code_promp = get(g:, 'cg_chat_code_promp', 
 \   {
 \     'role': 'user',
@@ -131,25 +132,65 @@ endfunction
 " CHAT FUNCTION
 " =============
 
-function! cg#chat(msg, is_code) abort
+function! cg#chat(msg, is_code, buf_nr) abort
   let g:cg_api_key = get(g:, 'cg_api_key', '')
   if len(g:cg_api_key) == 0
     call s:warn('ChatGPT api key is required to be set to `g:cg_api_key`')
     return
   endif
 
-  let l:cmd = s:get_chat_cmd(g:cg_api_key, a:msg, a:is_code)
-  call s:send_chat_query(l:cmd, a:msg, a:is_code, -1)
+  let l:cmd = s:get_chat_cmd(g:cg_api_key, a:msg, a:is_code, a:buf_nr)
+  call s:send_chat_query(l:cmd, a:msg, a:is_code, a:buf_nr)
 endfunction
 
-function! s:get_chat_cmd(api_key, msg, is_code) abort
-  let l:messages = [
-  \   {'role': 'user', 'content': a:msg},
+function! cg#chat_commit() abort
+  if !exists('b:cg_chat_buf')
+    return
+  endif
+  let l:buf_nr = bufnr()
+  let l:is_code = get(b:, 'cg_is_code', 0)
+
+  let l:commit_buf_nr = (l:is_code ? 'CGCode' : 'CGC') . ' Commit ' . l:buf_nr
+  call s:goto_buf(l:commit_buf_nr)
+
+  if exists('b:cg_chat_commit_buf')
+    return
+  endif
+
+  silent execute 'file' fnameescape(l:commit_buf_nr)
+
+  let b:cg_is_code = l:is_code
+  let b:cg_buf_nr = l:buf_nr
+  let b:cg_chat_commit_buf = 1
+
+  augroup CGCOMMIT
+       autocmd! * <buffer>
+       autocmd BufUnload <buffer> call <SID>commit_buf_submit()
+  augroup END
+endfunction
+
+function! s:commit_buf_submit() abort
+  if !exists('b:cg_chat_commit_buf')
+    return
+  endif
+  let l:commit_msg = getbufline('%', 1, '$')
+  if empty(trim(join(l:commit_msg, '')))
+    return
+  end
+
+  call cg#chat(l:commit_msg, b:cg_is_code, b:cg_buf_nr)
+endfunction
+
+function! s:get_chat_cmd(api_key, msg, is_code, buf_nr) abort
+  let l:messages = s:get_chat_prev_msg(a:buf_nr) + [
+  \   {'role': 'user', 'content': join(a:msg, '\n')},
   \ ]
-  
+
   if a:is_code
     let l:messages = [g:cg_chat_code_promp] + l:messages
   endif
+
+  echom l:messages
 
   let l:data = {
   \ 'model': g:cg_chat_model,
@@ -171,6 +212,25 @@ function! s:get_chat_cmd(api_key, msg, is_code) abort
   \]
 
   return join(l:cmd, ' ')
+endfunction
+
+function! s:get_chat_prev_msg(buf_nr) abort
+  let l:messages = []
+  let l:buf_nr = bufnr(a:buf_nr)
+  if l:buf_nr == -1
+    return l:messages
+  endif
+
+  let l:prev_messages = getbufvar(l:buf_nr, 'cg_messages', [])
+  let l:prev_messages = len(l:prev_messages) > g:cg_chat_history_count ?
+    \ l:prev_messages[-g:cg_chat_history_count:] : l:prev_messages
+
+  for data in l:prev_messages
+    call add(l:messages, {'role': 'user', 'content': join(data['msg'], '\n')})
+    call add(l:messages, {'role': 'assistant', 'content': join(data['response'], '\n')})
+  endfor
+
+  return l:messages
 endfunction
 
 function! s:send_chat_query(cmd, msg, is_code, buf_nr) abort
@@ -202,8 +262,8 @@ function! s:process_chat_response(response, msg, is_code, buf_nr) abort
   let l:response = join(a:response, '')
   let l:response = trim(l:response)
   if empty(l:response)
-    let l:response = [
-    \ a:msg,
+    let l:response = []
+    let l:content = a:msg + [
     \ '',
     \ '---',
     \ '',
@@ -213,8 +273,7 @@ function! s:process_chat_response(response, msg, is_code, buf_nr) abort
     let l:response = json_decode(l:response)
     let l:response = l:response['choices'][0]['message']['content']
     let l:response = split(l:response, '\n')
-    let l:response = [
-    \ a:msg,
+    let l:content = a:msg + [
     \ '',
     \ '---',
     \ '',
@@ -224,11 +283,35 @@ function! s:process_chat_response(response, msg, is_code, buf_nr) abort
   let l:cur_winid = win_getid()
 
   call s:goto_buf(a:buf_nr)
-  silent execute 'file' fnameescape((a:is_code ? 'CGCode ' : 'CGC '). bufnr())
-  silent execute 'setfiletype' 'markdown'
-  call s:fill(l:response)
+  call s:fill(l:content)
+  call s:post_chat(a:msg, l:response, a:is_code)
 
   call win_gotoid(l:cur_winid)
+endfunction
+
+function! s:post_chat(msg, response, is_code) abort
+  let b:cg_messages = get(b:, 'cg_messages', [])
+  call add(b:cg_messages, {
+  \   'msg': a:msg,
+  \   'response': a:response
+  \ })
+
+  if exists('b:cg_chat_buf')
+    return
+  endif
+
+  call s:set_chat_maps()
+  silent execute 'file' fnameescape((a:is_code ? 'CGCode ' : 'CGC '). bufnr())
+  silent execute 'setfiletype' 'markdown'
+
+  let b:cg_is_code = a:is_code ? 1 : 0
+  let b:cg_chat_buf = 1
+endfunction
+
+function! s:set_chat_maps() abort
+  nnoremap <silent> <buffer> > :call cg#chat_next()<cr>
+  nnoremap <silent> <buffer> < :call cg#chat_prev()<cr>
+  nnoremap <silent> <buffer> cc :call cg#chat_commit()<cr>
 endfunction
 
 " ====
