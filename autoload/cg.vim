@@ -190,8 +190,6 @@ function! s:get_chat_cmd(api_key, msg, is_code, buf_nr) abort
     let l:messages = [g:cg_chat_code_promp] + l:messages
   endif
 
-  echom l:messages
-
   let l:data = {
   \ 'model': g:cg_chat_model,
   \ 'max_tokens': g:cg_chat_max_token,
@@ -263,22 +261,13 @@ function! s:process_chat_response(response, msg, is_code, buf_nr) abort
   let l:response = trim(l:response)
   if empty(l:response)
     let l:response = []
-    let l:content = a:msg + [
-    \ '',
-    \ '---',
-    \ '',
-    \ 'Fail to get response or response empty.',
-    \]
   else
     let l:response = json_decode(l:response)
     let l:response = l:response['choices'][0]['message']['content']
     let l:response = split(l:response, '\n')
-    let l:content = a:msg + [
-    \ '',
-    \ '---',
-    \ '',
-    \] + l:response
   endif
+
+  let l:content = s:gen_chat_content(a:msg, l:response)
 
   let l:cur_winid = win_getid()
 
@@ -289,12 +278,21 @@ function! s:process_chat_response(response, msg, is_code, buf_nr) abort
   call win_gotoid(l:cur_winid)
 endfunction
 
+function! s:gen_chat_content(msg, response) abort
+  return a:msg + [
+  \ '',
+  \ '---',
+  \ '',
+  \] + (empty(a:response) ? ['Fail to get response or response empty.'] : a:response)
+endfunction
+
 function! s:post_chat(msg, response, is_code) abort
   let b:cg_messages = get(b:, 'cg_messages', [])
   call add(b:cg_messages, {
   \   'msg': a:msg,
   \   'response': a:response
   \ })
+  let b:cg_chat_cur_msg = len(b:cg_messages) - 1
 
   if exists('b:cg_chat_buf')
     return
@@ -312,6 +310,58 @@ function! s:set_chat_maps() abort
   nnoremap <silent> <buffer> > :call cg#chat_next()<cr>
   nnoremap <silent> <buffer> < :call cg#chat_prev()<cr>
   nnoremap <silent> <buffer> cc :call cg#chat_commit()<cr>
+endfunction
+
+function! cg#chat_next() abort
+  if !exists('b:cg_chat_buf')
+    return
+  endif
+
+  let l:cur_idx = b:cg_chat_cur_msg + 1
+
+  if l:cur_idx >= len(b:cg_messages)
+    echo 'CGC no next message'
+    return
+  endif
+
+  let b:cg_chat_cur_msg = l:cur_idx
+
+  let l:data = b:cg_messages[l:cur_idx]
+  let l:msg = l:data['msg']
+  let l:response = l:data['response']
+
+  let win_state = winsaveview()
+
+  let l:content = s:gen_chat_content(l:msg, l:response)
+  call s:fill(l:content)
+
+  call winrestview(win_state)
+endfunction
+
+function! cg#chat_prev() abort
+  if !exists('b:cg_chat_buf')
+    return
+  endif
+
+  let l:cur_idx = b:cg_chat_cur_msg - 1
+
+  if l:cur_idx < 0
+    echo 'CGC no prev message'
+    return
+  endif
+
+  let b:cg_chat_cur_msg = l:cur_idx
+
+  let l:data = b:cg_messages[l:cur_idx]
+  let l:msg = l:data['msg']
+  let l:response = l:data['response']
+
+  let win_state = winsaveview()
+
+  let l:content = s:gen_chat_content(l:msg, l:response)
+  call s:fill(l:content)
+
+  call winrestview(win_state)
 endfunction
 
 " ====
