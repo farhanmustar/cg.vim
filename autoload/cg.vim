@@ -63,20 +63,25 @@ function! s:get_comp_cmd(api_key, query) abort
   \ '-H',
 	\ "'Content-Type: application/json'",
 	\ "https://api.openai.com/v1/completions",
-	\ "-d '" . l:json . "'",
+	\ "--data-binary @-",
   \]
 
-  return join(l:cmd, ' ')
+  return [join(l:cmd, ' '), l:json]
 endfunction
 
 function! s:send_comp_query(cmd, query, buf_nr) abort
   echo 'CG querying for response...'
   if has('job')
     let Callback = function('s:comp_job_callback', [a:query, a:buf_nr])
-    call job_start(a:cmd, {'close_cb': Callback})
+    let job = job_start(a:cmd[0], {'close_cb': Callback})
+    let channel = job_getchannel(job)
+    call ch_sendraw(channel, a:cmd[1])
+    call ch_close_in(channel)
   elseif has('nvim')
     let Callback = function('s:comp_job_callback_nvim', [a:query, a:buf_nr])
-    call jobstart(a:cmd, {'on_stdout': Callback, 'stdout_buffered': 1})
+    let jobid = jobstart(a:cmd[0], {'on_stdout': Callback, 'stdout_buffered': 1})
+    call chansend(jobid, a:cmd[1])
+    call chanclose(jobid, 'stdin')
   else
     call s:warn('CS.vim require job feature.')
   endif
@@ -210,10 +215,10 @@ function! s:get_chat_cmd(api_key, msg, is_code, buf_nr) abort
   \ '-H',
 	\ "'Content-Type: application/json'",
 	\ "https://api.openai.com/v1/chat/completions",
-	\ "-d '" . l:json . "'",
+	\ "--data-binary @-",
   \]
 
-  return join(l:cmd, ' ')
+  return [join(l:cmd, ' '), l:json]
 endfunction
 
 function! s:get_chat_prev_msg(buf_nr) abort
@@ -239,10 +244,15 @@ function! s:send_chat_query(cmd, msg, is_code, buf_nr) abort
   echo 'CGC querying for response...'
   if has('job')
     let Callback = function('s:chat_job_callback', [a:msg, a:is_code, a:buf_nr])
-    call job_start(a:cmd, {'close_cb': Callback})
+    let job = job_start(a:cmd[0], {'close_cb': Callback})
+    let channel = job_getchannel(job)
+    call ch_sendraw(channel, a:cmd[1])
+    call ch_close_in(channel)
   elseif has('nvim')
     let Callback = function('s:chat_job_callback_nvim', [a:msg, a:is_code, a:buf_nr])
-    call jobstart(a:cmd, {'on_stdout': Callback, 'stdout_buffered': 1})
+    let jobid = jobstart(a:cmd[0], {'on_stdout': Callback, 'stdout_buffered': 1})
+    call chansend(jobid, a:cmd[1])
+    call chanclose(jobid, 'stdin')
   else
     call s:warn('CS.vim require job feature.')
   endif
