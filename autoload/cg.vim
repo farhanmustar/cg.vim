@@ -9,9 +9,8 @@ let g:cg_curl_cmd = get(g:, 'cg_curl_cmd', 'curl --silent --max-time '.g:cg_curl
 " COMP CONFIG
 " ===========
 
-" https://platform.openai.com/docs/api-reference/completions/create
 let g:cg_comp_model = get(g:, 'cg_comp_model', 'text-davinci-003')
-" let g:cg_comp_model = get(g:, 'cg_comp_model', 'code-davinci-002')  " codex if free for now.
+" let g:cg_comp_model = get(g:, 'cg_comp_model', 'code-davinci-002')
 let g:cg_comp_max_token = get(g:, 'cg_comp_max_token', 500)  " limit cost for prompt and reply.
 let g:cg_comp_temperature = get(g:, 'cg_comp_temperature', 0)  " 0 - 2 -> higer value less predictable
 
@@ -19,7 +18,6 @@ let g:cg_comp_temperature = get(g:, 'cg_comp_temperature', 0)  " 0 - 2 -> higer 
 " CHAT CONFIG
 " ===========
 
-" TODO: add chat capablility. but only gpt-3.5-turbo support. for now focus on completion.
 let g:cg_chat_model = get(g:, 'cg_chat_model', 'gpt-3.5-turbo')
 let g:cg_chat_max_token = get(g:, 'cg_chat_max_token', 2000)  " limit cost for request and reply.
 let g:cg_chat_temperature = get(g:, 'cg_chat_temperature', 1)  " 0 - 2 -> higer value less predictable
