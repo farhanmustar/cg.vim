@@ -108,15 +108,21 @@ function! s:process_comp_response(response, query, buf_nr) abort
     \ 'Fail to get response or response empty.',
     \]
   else
-    let l:response = json_decode(l:response)
-    let l:response = l:response['choices'][0]['text']
-    let l:response = split(l:response, '\n')
-    let l:response = [
-    \ a:query,
-    \ '',
-    \ '---',
-    \ '',
-    \] + l:response
+    try
+      let l:response = json_decode(l:response)
+      let l:response = l:response['choices'][0]['text']
+      let l:response = split(l:response, '\n')
+      let l:response = [
+      \ a:query,
+      \ '',
+      \ '---',
+      \ '',
+      \] + l:response
+    catch
+      echom a:response
+      call s:warn('Fail to process response.')
+      return
+    endtry
   endif
 
   let l:cur_winid = win_getid()
@@ -262,9 +268,15 @@ function! s:process_chat_response(response, msg, is_code, buf_nr) abort
   if empty(l:response)
     let l:response = []
   else
-    let l:response = json_decode(l:response)
-    let l:response = l:response['choices'][0]['message']['content']
-    let l:response = split(l:response, '\n')
+    try
+      let l:response = json_decode(l:response)
+      let l:response = l:response['choices'][0]['message']['content']
+      let l:response = split(l:response, '\n')
+    catch
+      echom a:response
+      call s:warn('Fail to process response.')
+      return
+    endtry
   endif
 
   let l:content = s:gen_chat_content(a:msg, l:response)
