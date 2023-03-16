@@ -230,13 +230,17 @@ function! s:get_chat_prev_msg(buf_nr) abort
   endif
 
   let l:prev_messages = getbufvar(l:buf_nr, 'cg_messages', [])
-  let l:prev_messages = len(l:prev_messages) > g:cg_chat_history_count ?
-    \ l:prev_messages[-g:cg_chat_history_count:] : l:prev_messages
 
   for data in l:prev_messages
+    if empty(data['response'])
+      continue
+    endif
     call add(l:messages, {'role': 'user', 'content': join(data['msg'], '\n')})
     call add(l:messages, {'role': 'assistant', 'content': join(data['response'], '\n')})
   endfor
+
+  let l:messages = len(l:messages) > (g:cg_chat_history_count * 2) ?
+    \ l:messages[-(g:cg_chat_history_count * 2):] : l:messages
 
   return l:messages
 endfunction
