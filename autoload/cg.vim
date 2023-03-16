@@ -100,6 +100,7 @@ function! s:comp_job_callback_nvim(query, buf_nr, id, data, event) abort
 endfunction
 
 function! s:process_comp_response(response, query, buf_nr) abort
+  echo ''
   let l:response = join(a:response, '')
   let l:response = trim(l:response)
   if empty(l:response)
@@ -271,6 +272,7 @@ function! s:chat_job_callback_nvim(msg, is_code, buf_nr, id, data, event) abort
 endfunction
 
 function! s:process_chat_response(response, msg, is_code, buf_nr) abort
+  echo ''
   let l:response = join(a:response, '')
   let l:response = trim(l:response)
   if empty(l:response)
