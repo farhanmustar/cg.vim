@@ -39,10 +39,37 @@ let g:cg_api_key = trim(g:cg_api_key)
 ## Functionality
 * Add 3 new command:
 ```vim
-:CG your query     <-  single completion query.
-:CGC your query    <-  Chat query, usage will be shown below.
-:CGCode your query <-  Similar to `:CGC` but added initial user message to ensure only code reply.
+:CG your query     " single completion query.
+:CGC your query    " Chat query, usage will be shown below.
+:CGCode your query " Similar to `:CGC` but added initial user message to ensure only code reply.
+
+" Chat Buffer Key Maps (for CGC and CGCode command only).
+cc " Open commit buffer to send next message (empty message will treat as cancel new msg)
+<  " Navigate to previous conversation.
+>  " Navigate to next conversation
 ```
+
+### Demo 1
+* Demonstrate `:CG` command to query for `python method to hash multiple files`.
+* Then manually set the opened CG buffer to python filetype for syntax highlighting.
+<img src="https://github.com/farhanmustar/cg.vim/wiki/cg_promp.gif" alt="CG Demo" />
+
+### Demo 2
+* Demonstrate `:CGC` command to query for `python method to hash multiple files`.
+* Then `cc` keymap is pressed to open commit buffer to reply for better answer with the following query:<br>
+  `But i want to read all files content then hash temp all into single hash value`
+* Then manually set the opened CG buffer to python filetype for syntax highlighting.
+<img src="https://github.com/farhanmustar/cg.vim/wiki/cgc_chat.gif" alt="CGC Demo" />
+
+### Demo 3
+* Demonstrate `:CGCode` command to query for `python method to hash multiple files`.
+* Then `cc` keymap is pressed to open commit buffer to reply for better answer with the following query:<br>
+  `But i want to hash all files into single hash value`
+* Reply again with following message to cleanup the suggested answer:<br>
+  `Can we do it without reading it by chunk`
+* Finally navigate to previous and next conversation using `<` and `>` keymap.
+<img src="https://github.com/farhanmustar/cg.vim/wiki/cgcode_chat.gif" alt="CGCode Demo" />
+
 
 # DISCLAIMER
 
