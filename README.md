@@ -1,5 +1,5 @@
 # CG.vim
-* Vim plugin to query to [ChatGPT](https://chat.openai.com/). 
+* Vim plugin to query to [OpenAI API](https://platform.openai.com). 
 * While there are already a few ChatGPT plugins available, this plugin aims to replicate the behavior of [CS.vim](https://github.com/farhanmustar/CS.vim) and [vim-fugitive](https://github.com/tpope/vim-fugitive). Specifically, the aim is to recreate the commit message buffer behavior in vim-fugitive.
 * This plugin make use of ```curl``` application to query information directly from vim. Makesure curl is executable by vim.
 * Execute this command in vim to check:
