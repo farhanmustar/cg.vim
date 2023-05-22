@@ -335,6 +335,7 @@ endfunction
 function! s:set_chat_maps() abort
   nnoremap <silent> <buffer> > :call cg#chat_next()<cr>
   nnoremap <silent> <buffer> < :call cg#chat_prev()<cr>
+  nnoremap <silent> <buffer> <leader>af :call cg#chat_format()<cr>
   nnoremap <silent> <buffer> cc :call cg#chat_commit()<cr>
 endfunction
 
@@ -381,6 +382,26 @@ function! cg#chat_prev() abort
   let l:data = b:cg_messages[l:cur_idx]
   let l:msg = l:data['msg']
   let l:response = l:data['response']
+
+  let win_state = winsaveview()
+
+  let l:content = s:gen_chat_content(l:msg, l:response)
+  call s:fill(l:content)
+
+  call winrestview(win_state)
+endfunction
+
+function! cg#chat_format() abort
+  " fix sometimes ai reply with literal \n
+  if !exists('b:cg_chat_buf')
+    return
+  endif
+
+  let l:cur_idx = b:cg_chat_cur_msg
+
+  let l:data = b:cg_messages[l:cur_idx]
+  let l:msg = l:data['msg']
+  let l:response = split(join(l:data['response'], '\\n'), '\\n')
 
   let win_state = winsaveview()
 
