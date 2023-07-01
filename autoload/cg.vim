@@ -29,6 +29,10 @@ let g:cg_chat_code_promp = get(g:, 'cg_chat_code_promp',
 \   }
 \ )
 
+let g:cg_welcome_txt = 'Shortcut:' .
+      \ "\ncc - create new reply" .
+      \ "\n<  - browse previous msgs" .
+      \ "\n>  - browse next msgs"
 
 " =============
 " COMP FUNCTION
@@ -151,6 +155,7 @@ function! cg#chat(msg, is_code, buf_nr) abort
 
   if len(a:msg) == 1 && empty(a:msg[0])
     call s:goto_buf(-1)
+    call s:fill(split(g:cg_welcome_txt, '\n'))
     call s:empty_post_chat(a:is_code)
     return
   endif
@@ -339,8 +344,6 @@ function! s:post_chat(msg, response, is_code) abort
 endfunction
 
 function! s:empty_post_chat(is_code) abort
-  " TODO: print help in buffer first
-  setlocal nomodifiable
   let b:cg_messages = get(b:, 'cg_messages', [])
   let b:cg_chat_cur_msg = len(b:cg_messages) - 1
 
