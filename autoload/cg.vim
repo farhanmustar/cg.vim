@@ -149,6 +149,12 @@ function! cg#chat(msg, is_code, buf_nr) abort
     return
   endif
 
+  if len(a:msg) == 1 && empty(a:msg[0])
+    call s:goto_buf(-1)
+    call s:empty_post_chat(a:is_code)
+    return
+  endif
+
   let l:cmd = s:get_chat_cmd(g:cg_api_key, a:msg, a:is_code, a:buf_nr)
   call s:send_chat_query(l:cmd, a:msg, a:is_code, a:buf_nr)
 endfunction
@@ -318,6 +324,24 @@ function! s:post_chat(msg, response, is_code) abort
   \   'msg': a:msg,
   \   'response': a:response
   \ })
+  let b:cg_chat_cur_msg = len(b:cg_messages) - 1
+
+  if exists('b:cg_chat_buf')
+    return
+  endif
+
+  call s:set_chat_maps()
+  silent execute 'file' fnameescape((a:is_code ? 'CGCode ' : 'CGC '). bufnr())
+  silent execute 'setfiletype' 'markdown'
+
+  let b:cg_is_code = a:is_code ? 1 : 0
+  let b:cg_chat_buf = 1
+endfunction
+
+function! s:empty_post_chat(is_code) abort
+  " TODO: print help in buffer first
+  setlocal nomodifiable
+  let b:cg_messages = get(b:, 'cg_messages', [])
   let b:cg_chat_cur_msg = len(b:cg_messages) - 1
 
   if exists('b:cg_chat_buf')
