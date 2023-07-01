@@ -29,6 +29,10 @@ let g:cg_chat_code_promp = get(g:, 'cg_chat_code_promp',
 \   }
 \ )
 
+let g:cg_welcome_txt = 'Shortcut:' .
+      \ "\ncc - create new reply" .
+      \ "\n<  - browse previous msgs" .
+      \ "\n>  - browse next msgs"
 
 " =============
 " COMP FUNCTION
@@ -146,6 +150,13 @@ function! cg#chat(msg, is_code, buf_nr) abort
   let g:cg_api_key = get(g:, 'cg_api_key', '')
   if len(g:cg_api_key) == 0
     call s:warn('ChatGPT api key is required to be set to `g:cg_api_key`')
+    return
+  endif
+
+  if len(a:msg) == 1 && empty(a:msg[0])
+    call s:goto_buf(-1)
+    call s:fill(split(g:cg_welcome_txt, '\n'))
+    call s:empty_post_chat(a:is_code)
     return
   endif
 
@@ -318,6 +329,22 @@ function! s:post_chat(msg, response, is_code) abort
   \   'msg': a:msg,
   \   'response': a:response
   \ })
+  let b:cg_chat_cur_msg = len(b:cg_messages) - 1
+
+  if exists('b:cg_chat_buf')
+    return
+  endif
+
+  call s:set_chat_maps()
+  silent execute 'file' fnameescape((a:is_code ? 'CGCode ' : 'CGC '). bufnr())
+  silent execute 'setfiletype' 'markdown'
+
+  let b:cg_is_code = a:is_code ? 1 : 0
+  let b:cg_chat_buf = 1
+endfunction
+
+function! s:empty_post_chat(is_code) abort
+  let b:cg_messages = get(b:, 'cg_messages', [])
   let b:cg_chat_cur_msg = len(b:cg_messages) - 1
 
   if exists('b:cg_chat_buf')
