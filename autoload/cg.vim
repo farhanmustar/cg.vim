@@ -30,9 +30,9 @@ let g:cg_chat_code_promp = get(g:, 'cg_chat_code_promp',
 \ )
 
 let g:cg_welcome_txt = 'Shortcut:' .
-      \ "\ncc - create new reply" .
-      \ "\n<  - browse previous msgs" .
-      \ "\n>  - browse next msgs"
+      \ "\n    * cc - create new reply" .
+      \ "\n    * <  - browse previous msgs" .
+      \ "\n    * >  - browse next msgs"
 
 " =============
 " COMP FUNCTION
@@ -179,6 +179,7 @@ function! cg#chat_commit() abort
   endif
 
   silent execute 'file' fnameescape(l:commit_buf_nr)
+  silent execute 'setfiletype' 'markdown'
 
   let b:cg_is_code = l:is_code
   let b:cg_buf_nr = l:buf_nr
