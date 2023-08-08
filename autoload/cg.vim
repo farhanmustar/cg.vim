@@ -30,9 +30,10 @@ let g:cg_chat_code_promp = get(g:, 'cg_chat_code_promp',
 \ )
 
 let g:cg_welcome_txt = 'Shortcut:' .
-      \ "\n    * cc - create new reply" .
-      \ "\n    * <  - browse previous msgs" .
-      \ "\n    * >  - browse next msgs"
+      \ "\n    * cc          - create new reply" .
+      \ "\n    * <           - browse previous msgs" .
+      \ "\n    * >           - browse next msgs" .
+      \ "\n    * <leader>af  - fix reply newline formatting error"
 
 " =============
 " COMP FUNCTION
